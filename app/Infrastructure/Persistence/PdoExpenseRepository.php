@@ -10,12 +10,15 @@ use App\Domain\Repository\ExpenseRepositoryInterface;
 use DateTimeImmutable;
 use Exception;
 use PDO;
+use Psr\Log\LoggerInterface;
 
 class PdoExpenseRepository implements ExpenseRepositoryInterface
 {
     public function __construct(
         private readonly PDO $pdo,
-    ) {}
+        private readonly LoggerInterface $logger
+    ) {
+    }
 
     /**
      * @throws Exception
@@ -36,6 +39,21 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     public function save(Expense $expense): void
     {
         // TODO: Implement save() method.
+        $query = 'INSERT INTO expenses (user_id, date, category, amount_cents, description)
+                VALUES (:user_id,:date,:category,:amount_cents,:description)';
+        $statement = $this->pdo->prepare($query);
+        try{
+
+            $statement->execute([
+                'user_id'=> $expense->userId,
+                'date'=> $expense->date->format('Y-m-d H:i:s'),
+                'category'=> $expense->category,
+                'amount_cents'=> $expense->amountCents,
+                'description'=> $expense->description
+            ]);
+        }catch(\PDOException $e){
+          $this->logger->error($e->getMessage());   
+        }
     }
 
     public function delete(int $id): void

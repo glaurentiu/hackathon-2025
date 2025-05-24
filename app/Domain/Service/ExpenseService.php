@@ -44,11 +44,13 @@ class ExpenseService
             $errors['date'] = 'Date must be in the past';
         }
 
+        $amountInCents = (int) ($amount * 100);
+
         if(!empty($errors)){
             throw new \InvalidArgumentException(json_encode($errors));
         }
         // TODO: here is a code sample to start with
-        $expense = new Expense(null, $user->id, $date, $category, (int)$amount, $description);
+        $expense = new Expense(null, $user->id, $date, $category, $amountInCents, $description);
         $this->expenses->save($expense);
     }
 
