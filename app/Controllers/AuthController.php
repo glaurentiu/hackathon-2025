@@ -8,6 +8,7 @@ use App\Domain\Service\AuthService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Slim\Views\Twig;
 
 class AuthController extends BaseController
@@ -31,6 +32,21 @@ class AuthController extends BaseController
     public function register(Request $request, Response $response): Response
     {
         // TODO: call corresponding service to perform user registration
+        $data = $request->getParsedBody();
+        $username = $data['username'];
+        $password = $data['password'];
+
+        try {
+
+            $user = $this->authService->register($username, $password);
+            $this->logger->info('User created', ['username' => $username]);
+
+        } catch (\PDOException $e) {
+            $this->logger->error("Registration error", [
+                'error' => $e->getMessage()
+            ]);
+        }
+        ;
 
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
@@ -43,14 +59,24 @@ class AuthController extends BaseController
     public function login(Request $request, Response $response): Response
     {
         // TODO: call corresponding service to perform user login, handle login failures
+        $data = $request->getParsedBody();
+        $username = $data['username'];
+        $password = $data['password'];
 
-        return $response->withHeader('Location', '/')->withStatus(302);
+        $authenticationResult = $this->authService->attempt($username, $password); 
+
+        if ($authenticationResult) {
+            
+            return $response->withHeader('Location', '/')->withStatus(302);
+        }  
+
+        return $response->withHeader('Location', '/login')->withStatus(302);
     }
 
     public function logout(Request $request, Response $response): Response
     {
         // TODO: handle logout by clearing session data and destroying session
-
+        $_SERVER = [];
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
 }
