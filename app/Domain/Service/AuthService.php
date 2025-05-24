@@ -26,13 +26,13 @@ class AuthService
         $this->logger->info('User not found');
 
         if ($userRegistred) {
-            throw new RuntimeException("Invalid username");
+            $_SESSION['errors']['username'] = 'This user already exists';
         }
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
         $user = new User(null, $username, $passwordHash, new \DateTimeImmutable());
         $this->users->save($user);
-
+        unset($_SESSION['errors']);
         return $user;
     }
 
@@ -58,8 +58,8 @@ class AuthService
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
 
-        $this->logger->info('session user id '.$_SESSION['user_id'] . 'user_id '.$user->id);
-        
+        $this->logger->info('session user id ' . $_SESSION['user_id'] . 'user_id ' . $user->id);
+
 
         return true;
     }

@@ -26,6 +26,8 @@ class AuthController extends BaseController
         // TODO: you also have a logger service that you can inject and use anywhere; file is var/app.log
         $this->logger->info('Register page requested');
 
+        unset($_SESSION['errors']);
+
         return $this->render($response, 'auth/register.twig');
     }
 
@@ -35,7 +37,21 @@ class AuthController extends BaseController
         $data = $request->getParsedBody();
         $username = $data['username'];
         $password = $data['password'];
+        $errors = [];
 
+        //Validation rules
+
+        if (empty($username)) {
+            $errors['username'] = 'Username is required';
+        } elseif (strlen(trim($username)) < 4) {
+            $errors['username'] = 'Username must be min 4 chars';
+        }
+
+        if (empty($password)) {
+            $errors['password'] = 'Password is required';
+        }elseif (strlen($password) < 9   || !preg_match('/[0-9]/', $password) ) {
+            $errors['password'] = 'Password must have at least 8 chars and 1 number';
+        }
         try {
 
             $user = $this->authService->register($username, $password);
@@ -45,6 +61,8 @@ class AuthController extends BaseController
             $this->logger->error("Registration error", [
                 'error' => $e->getMessage()
             ]);
+            $errors = $_SESSION['errors'] ?? [];
+            return $this->render($response, 'auth/register.twig', ['errors' => $errors]);
         }
         ;
 
@@ -63,20 +81,20 @@ class AuthController extends BaseController
         $username = $data['username'];
         $password = $data['password'];
 
-        $authenticationResult = $this->authService->attempt($username, $password); 
+        $authenticationResult = $this->authService->attempt($username, $password);
 
         if ($authenticationResult) {
-            
             return $response->withHeader('Location', '/')->withStatus(302);
-        }  
+        }
 
-        return $response->withHeader('Location', '/login')->withStatus(302);
+        $errors['login'] = 'Please check your credentials';
+            return $this->render($response, 'auth/login.twig', ['errors' => $errors]);
     }
 
     public function logout(Request $request, Response $response): Response
     {
         // TODO: handle logout by clearing session data and destroying session
-        $_SERVER = [];
+        $_SESSION = [];
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
 }

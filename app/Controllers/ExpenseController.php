@@ -8,6 +8,9 @@ use App\Domain\Service\ExpenseService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
+use App\Infrastructure\Persistence\PdoUserRepository;
+
+
 
 class ExpenseController extends BaseController
 {
@@ -16,6 +19,8 @@ class ExpenseController extends BaseController
     public function __construct(
         Twig $view,
         private readonly ExpenseService $expenseService,
+        private readonly PdoUserRepository $user 
+     
     ) {
         parent::__construct($view);
     }
@@ -30,11 +35,14 @@ class ExpenseController extends BaseController
         // - use the expense service to fetch expenses for the current user
 
         // parse request parameters
-        $userId = 1; // TODO: obtain logged-in user ID from session
+        $userId = $_SESSION['user_id']; // TODO: obtain logged-in user ID from session
+        $user= $this->user->find($userId);
         $page = (int)($request->getQueryParams()['page'] ?? 1);
         $pageSize = (int)($request->getQueryParams()['pageSize'] ?? self::PAGE_SIZE);
+        $year = (int) date('Y');
+        $month = (int) date('m');
 
-        $expenses = $this->expenseService->list($userId, $page, $pageSize);
+        $expenses = $this->expenseService->list($user,$year,$month, $page, $pageSize);
 
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,

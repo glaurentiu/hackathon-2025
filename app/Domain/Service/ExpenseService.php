@@ -19,6 +19,7 @@ class ExpenseService
     public function list(User $user, int $year, int $month, int $pageNumber, int $pageSize): array
     {
         // TODO: implement this and call from controller to obtain paginated list of expenses
+        
         return [];
     }
 
