@@ -31,7 +31,22 @@ class ExpenseService
         string $category,
     ): void {
         // TODO: implement this to create a new expense entity, perform validation, and persist
+        //Validators
+        $errors =[];
+        if(empty($description)){
+            $errors['description']='Description is required';
+        }
+        if(empty($category)){
+            $errors['category']= 'Category must be selected';
+        }
+        $today = new DateTimeImmutable();
+        if($date >= $today){
+            $errors['date'] = 'Date must be in the past';
+        }
 
+        if(!empty($errors)){
+            throw new \InvalidArgumentException(json_encode($errors));
+        }
         // TODO: here is a code sample to start with
         $expense = new Expense(null, $user->id, $date, $category, (int)$amount, $description);
         $this->expenses->save($expense);

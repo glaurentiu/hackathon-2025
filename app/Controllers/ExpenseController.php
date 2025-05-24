@@ -7,8 +7,10 @@ namespace App\Controllers;
 use App\Domain\Service\ExpenseService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Log\LoggerInterface;
 use Slim\Views\Twig;
 use App\Infrastructure\Persistence\PdoUserRepository;
+
 
 
 
@@ -19,8 +21,10 @@ class ExpenseController extends BaseController
     public function __construct(
         Twig $view,
         private readonly ExpenseService $expenseService,
-        private readonly PdoUserRepository $user 
-     
+        private readonly PdoUserRepository $user,
+        private readonly LoggerInterface $logger,
+
+
     ) {
         parent::__construct($view);
     }
@@ -36,17 +40,17 @@ class ExpenseController extends BaseController
 
         // parse request parameters
         $userId = $_SESSION['user_id']; // TODO: obtain logged-in user ID from session
-        $user= $this->user->find($userId);
-        $page = (int)($request->getQueryParams()['page'] ?? 1);
-        $pageSize = (int)($request->getQueryParams()['pageSize'] ?? self::PAGE_SIZE);
+        $user = $this->user->find($userId);
+        $page = (int) ($request->getQueryParams()['page'] ?? 1);
+        $pageSize = (int) ($request->getQueryParams()['pageSize'] ?? self::PAGE_SIZE);
         $year = (int) date('Y');
         $month = (int) date('m');
 
-        $expenses = $this->expenseService->list($user,$year,$month, $page, $pageSize);
+        $expenses = $this->expenseService->list($user, $year, $month, $page, $pageSize);
 
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
-            'page'     => $page,
+            'page' => $page,
             'pageSize' => $pageSize,
         ]);
     }
@@ -57,13 +61,39 @@ class ExpenseController extends BaseController
 
         // Hints:
         // - obtain the list of available categories from configuration and pass to the view
+        $categories = json_decode($_ENV['EXPENSES_CATEGORIES'], true);
 
-        return $this->render($response, 'expenses/create.twig', ['categories' => []]);
+
+
+        return $this->render($response, 'expenses/create.twig', ['categories' => $categories]);
     }
 
     public function store(Request $request, Response $response): Response
     {
         // TODO: implement this action method to create a new expense
+        $userId = $_SESSION['user_id'];
+        $user = $this->user->find($userId);
+        $data = $request->getParsedBody();
+        $amount = (float) $data['amount'];
+        $description = $data['description'];
+        $date = new \DateTimeImmutable($data['date']);
+        $category = $data['category'];
+
+
+        try {
+            $this->expenseService->create($user, $amount, $description, $date, $category);
+
+            return $response->withHeader('Location', '/expenses')->withStatus(302);
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->error($e->getMessage());
+            $errors = json_decode($e->getMessage(), true);
+            $categories = json_decode($_ENV['EXPENSES_CATEGORIES'], true);
+            return $this->render($response, 'expenses/create.twig', [
+                'categories' => $categories,
+                'errors' => $errors
+            ]);
+        }
+
 
         // Hints:
         // - use the session to get the current user ID
@@ -71,7 +101,10 @@ class ExpenseController extends BaseController
         // - rerender the "expenses.create" page with included errors in case of failure
         // - redirect to the "expenses.index" page in case of success
 
-        return $response;
+
+
+
+
     }
 
     public function edit(Request $request, Response $response, array $routeParams): Response
