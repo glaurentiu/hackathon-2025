@@ -42,17 +42,17 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         $query = 'INSERT INTO expenses (user_id, date, category, amount_cents, description)
                 VALUES (:user_id,:date,:category,:amount_cents,:description)';
         $statement = $this->pdo->prepare($query);
-        try{
+        try {
 
             $statement->execute([
-                'user_id'=> $expense->userId,
-                'date'=> $expense->date->format('Y-m-d H:i:s'),
-                'category'=> $expense->category,
-                'amount_cents'=> $expense->amountCents,
-                'description'=> $expense->description
+                'user_id' => $expense->userId,
+                'date' => $expense->date->format('Y-m-d H:i:s'),
+                'category' => $expense->category,
+                'amount_cents' => $expense->amountCents,
+                'description' => $expense->description
             ]);
-        }catch(\PDOException $e){
-          $this->logger->error($e->getMessage());   
+        } catch (\PDOException $e) {
+            $this->logger->error($e->getMessage());
         }
     }
 
@@ -65,7 +65,43 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     public function findBy(array $criteria, int $from, int $limit): array
     {
         // TODO: Implement findBy() method.
-        return [];
+        try {
+
+            $query = 'SELECT * FROM expenses WHERE 1=1';
+            $params = [];
+            if (isset($criteria['user_id'])) {
+                $query .= ' AND user_id = ?';
+                $params[] = (int) $criteria['user_id'];
+            }
+            if (isset($criteria['year'])) {
+                $query .= ' AND strftime("%Y", date) = ?';
+                $params[] = (int) $criteria['year'];
+            }
+            if (isset($criteria['month'])) {
+                $query .= ' AND strftime("%m", date) = ?';
+                $params[] = sprintf('%02d', (int) $criteria['month']);
+            }
+
+
+            // Add pagination
+            $query .= ' ORDER BY date DESC LIMIT ? OFFSET ?';
+            $params[] = (int) $limit;
+            $params[] = (int) $from;
+
+
+            $statement = $this->pdo->prepare($query);
+            $statement->execute($params);
+            $expenses = [];
+            while ($data = $statement->fetch(PDO::FETCH_ASSOC)) {
+                $data['date'] = (new DateTimeImmutable($data['date']))->format('Y-m-d');
+                $expenses[] = $this->createExpenseFromData($data);
+            }
+
+            return $expenses;
+        } catch (\PDOException $e) {
+            $this->logger->error($e->getMessage());
+            return [];
+        }
     }
 
 

@@ -20,7 +20,18 @@ class ExpenseService
     {
         // TODO: implement this and call from controller to obtain paginated list of expenses
         
-        return [];
+       
+        $from = ($pageNumber - 1) * $pageSize;
+
+        $criteria = [
+            'user_id' => $user->id,
+            'year' => $year,
+            'month' => $month
+        ];
+        
+
+    // Call findBy on the repository
+    return $this->expenses->findBy($criteria, $from, $pageSize);
     }
 
     public function create(
