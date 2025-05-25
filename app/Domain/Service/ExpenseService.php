@@ -7,13 +7,17 @@ namespace App\Domain\Service;
 use App\Domain\Entity\Expense;
 use App\Domain\Entity\User;
 use App\Domain\Repository\ExpenseRepositoryInterface;
+use App\Infrastructure\Persistence\PdoExpenseRepository;
 use DateTimeImmutable;
 use Psr\Http\Message\UploadedFileInterface;
+use Psr\Log\LoggerInterface;
 
 class ExpenseService
 {
     public function __construct(
         private readonly ExpenseRepositoryInterface $expenses,
+        private readonly PdoExpenseRepository $expenseRepo,
+        private readonly LoggerInterface $logger
     ) {}
 
     public function list(User $user, int $year, int $month, int $pageNumber, int $pageSize): array
@@ -21,17 +25,24 @@ class ExpenseService
         // TODO: implement this and call from controller to obtain paginated list of expenses
         
        
-        $from = ($pageNumber - 1) * $pageSize;
+          $from = ($pageNumber - 1) * $pageSize;
 
         $criteria = [
             'user_id' => $user->id,
             'year' => $year,
             'month' => $month
         ];
-        
+     
 
-    // Call findBy on the repository
-    return $this->expenses->findBy($criteria, $from, $pageSize);
+            $this->logger->info((string) $user->id);
+              $this->logger->info((string) $criteria['user_id']);
+                         $this->logger->info((string) $criteria['year']);
+                                    $this->logger->info((string) $criteria['month']);
+   
+
+        $expenses = $this->expenseRepo->findBy($criteria, $from, $pageSize);
+
+        return $expenses;
     }
 
     public function create(

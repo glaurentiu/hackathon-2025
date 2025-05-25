@@ -48,10 +48,27 @@ class ExpenseController extends BaseController
 
         $expenses = $this->expenseService->list($user, $year, $month, $page, $pageSize);
 
+        //Get the years and sor them
+        $years = [];
+
+        foreach ($expenses as $expense) {
+            $expenseString = $expense->date->format('Y-m-d H:i:s');
+            $years[] = date('Y', strtotime($expenseString));
+        }
+
+        $years = array_unique($years);
+        rsort($years);
+
+        //Months
+
+        
+
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
             'page' => $page,
             'pageSize' => $pageSize,
+            'total' => count($expenses),
+            'years' => $years
         ]);
     }
 

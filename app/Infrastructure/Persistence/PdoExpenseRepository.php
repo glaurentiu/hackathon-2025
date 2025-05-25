@@ -66,7 +66,6 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     {
         // TODO: Implement findBy() method.
         try {
-
             $query = 'SELECT * FROM expenses WHERE 1=1';
             $params = [];
             if (isset($criteria['user_id'])) {
@@ -74,28 +73,50 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
                 $params[] = (int) $criteria['user_id'];
             }
             if (isset($criteria['year'])) {
-                $query .= ' AND strftime("%Y", date) = ?';
-                $params[] = (int) $criteria['year'];
+                $query .= ' AND strftime(\'%Y\', date) = ?';
+                $params[] = (string) $criteria['year'];
             }
             if (isset($criteria['month'])) {
-                $query .= ' AND strftime("%m", date) = ?';
-                $params[] = sprintf('%02d', (int) $criteria['month']);
+                $query .= ' AND strftime(\'%m\', date) = ?';
+                $params[] = sprintf('%02d',  $criteria['month']);
             }
 
 
-            // Add pagination
-            $query .= ' ORDER BY date DESC LIMIT ? OFFSET ?';
-            $params[] = (int) $limit;
-            $params[] = (int) $from;
 
 
             $statement = $this->pdo->prepare($query);
             $statement->execute($params);
             $expenses = [];
+            $iteration = 0;
             while ($data = $statement->fetch(PDO::FETCH_ASSOC)) {
-                $data['date'] = (new DateTimeImmutable($data['date']))->format('Y-m-d');
-                $expenses[] = $this->createExpenseFromData($data);
+                $iteration++;
+                // Log the entire row
+                $this->logger->debug('Iteration ' . $iteration . ' - Fetched data: ' . json_encode($data));
+
+                // Log each key-value pair using foreach
+                $this->logger->debug('Iteration ' . $iteration . ' - Key-value pairs:');
+                foreach ($data as $key => $value) {
+                    $this->logger->debug("  Key: $key, Value: " . ($value !== null ? $value : 'NULL'));
+                }
+
+                // Validate required fields and date
+                if (
+                    isset($data['id'], $data['user_id'], $data['date'], $data['category'], $data['amount_cents'], $data['description'])
+                    && $data['date'] !== null
+                    && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $data['date'])
+                ) {
+                    $expenses[] = $this->createExpenseFromData($data);
+                } else {
+                    $this->logger->warning('Iteration ' . $iteration . ' - Skipping invalid expense data: ' . json_encode($data));
+                }
             }
+
+            // Log if no rows were found
+            if ($iteration === 0) {
+                $this->logger->debug('No rows found for query');
+            }
+
+
 
             return $expenses;
         } catch (\PDOException $e) {

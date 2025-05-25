@@ -3,14 +3,6 @@
 {% block content %}
 
     {# TODO: remove mock data below, pass real expenses from the controller action #}
-    {# {% set expenses = [
-        {'id': 1, 'description': 'Groceries', 'amount': 150.50, 'category': 'Food', 'date': '2025-05-31'},
-        {'id': 2, 'description': 'Internet Bill', 'amount': 79.99, 'category': 'Utilities', 'date': '2025-05-25'},
-        {'id': 3, 'description': 'Movie Tickets', 'amount': 30.00, 'category': 'Entertainment', 'date': '2025-05-18'},
-        {'id': 4, 'description': 'Gas', 'amount': 45.75, 'category': 'Transportation', 'date': '2025-05-10'},
-        {'id': 5, 'description': 'Gym Membership', 'amount': 50.00, 'category': 'Health', 'date': '2025-05-05'}
-    ] %} #}
-    {% set total = 5 %}
 
 
 
@@ -31,9 +23,9 @@
                 {# TODO: remove mock data below, pass actual years with expenses from the controller #}
                 <select name="year" id="year"
                         class="shadow border rounded py-2 px-3 text-gray-400 leading-tight focus:outline-none focus:shadow-outline">
-                    <option value="2025" selected>2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
+                    {% for year in years %}
+                    <option value="{{year}}" {% if loop.first %}selected{% endif %} >{{year}}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div>
